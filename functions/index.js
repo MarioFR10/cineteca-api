@@ -1,51 +1,28 @@
-
 const functions = require("firebase-functions");
 const express = require('express');
-const sql = require('mssql');
+const axios = require('axios');
 const app = express();
 
-const config = {
-  user: process.env.DB_USER || 'Cineteca',
-  password: process.env.DB_PASSWORD || '1234',
-  server: process.env.DB_SERVER || 'DESKTOP-MCI75IP',
-  database: process.env.DB_DATABASE || 'cineteca',
-}
 
-async function connectToDatabase() {
-  try {
-    await sql.connect(config);
-    console.log("Connected to SQL Server database");
-  } catch (error) {
-    console.error("Error connecting to the database:", error);
-  }
-}
+const databaseURL = "https://cineteca-api-v2-default-rtdb.firebaseio.com";
 
-// Call the connectToDatabase function to establish the connection
-connectToDatabase();
-
-app.get("/test-db-connection", async (request, response) => {
-  try {
-    // Query the database (you can replace this with your own query)
-    const result = await sql.query`SELECT 'Database connection test successful' AS message`;
-
-    // Send the query result as a response
-    response.json(result.recordset);
-  } catch (error) {
-    console.error("Error testing database connection:", error);
-    response.status(500).json({ error: "Error testing database connection" });
-  }
+app.get('/', (request, response) => {
+  response.send("Hola mundo");
 });
 
-app.get('/', (request, response) => { 
-  response.send("Hola mundo nuevos");
-});
-
-app.get('/test', (request, response) => { 
-  response.send("Esto es un test");
-});
-
-app.post('/test', (request, response) => { 
-  response.send("Esto es un test");
+app.get('/test', (request, response) => {
+  return axios.put(`${databaseURL}/users/user.json`, {
+    username: 'Pepito 1234', 
+    password: 'Password1'
+  })
+    .then((dbResponse) => {
+      response.send('termino exitoso');
+      console.log(dbResponse);
+    })
+    .catch((error) => {
+      response.send('error');
+      console.log(error);
+    });
 });
 
 
