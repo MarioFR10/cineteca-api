@@ -72,6 +72,19 @@ app.post("/register-user", (request, response) => {
     });
 });
 
+app.get("/get-all-images", (request, response) => {
+  return axios
+    .get(`${databaseURL}/images.json`)
+    .then((dbResponse) => {
+      response.send({ ...dbResponse.data });
+      console.log(dbResponse);
+    })
+    .catch((error) => {
+      response.send("error");
+      console.log(error);
+    });
+});
+
 app.post("/upload-image", (request, response) => {
   const { uuid, base64Image } = request.body;
 
@@ -80,7 +93,9 @@ app.post("/upload-image", (request, response) => {
       base64Image,
     })
     .then(() => {
-      response.send("termino exitoso");
+      response.status(200).send({
+        status: 200
+      });
     })
     .catch((error) => {
       response.send("error");
