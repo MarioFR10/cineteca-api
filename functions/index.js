@@ -2,8 +2,11 @@ const functions = require("firebase-functions");
 const express = require("express");
 const axios = require("axios");
 const MD5 = require("crypto-js/md5");
+const cors = require("cors");
 
 const app = express();
+app.use(cors());
+
 const databaseURL = "https://cineteca-api-v2-default-rtdb.firebaseio.com";
 
 app.get("/", (request, response) => {
@@ -48,8 +51,20 @@ app.post("/register-user", (request, response) => {
       username,
       password,
     })
-    .then(() => {
-      response.send("termino exitoso");
+    .then((dbResponse) => {
+      if (dbResponse.data) {
+        response.status(200).send({
+          status: 200,
+          isRegistered: true,
+        });
+
+        return;
+      }
+
+      response.status(404).send({
+        status: 404,
+        isRegistered: false,
+      });
     })
     .catch((error) => {
       response.send("error");
