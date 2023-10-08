@@ -1,106 +1,200 @@
-const functions = require("firebase-functions");
 const express = require("express");
 const axios = require("axios");
-const MD5 = require("crypto-js/md5");
+const { MongoClient } = require("mongodb");
+const crypto = require("crypto-js");
 const cors = require("cors");
+const bodyParser = require("body-parser");
 
 const app = express();
+app.use(express.json({ limit: "500mb" }));
 app.use(cors());
+app.use(bodyParser.json());
 
-const databaseURL = "https://cineteca-api-v2-default-rtdb.firebaseio.com";
+// MongoDB Atlas connection string
+
+const mongoURI = "mongodb+srv://Sebas1498:1234@cineteca.fqyv7wo.mongodb.net/?retryWrites=true&w=majority";
 
 app.get("/", (request, response) => {
   response.send("Server running");
 });
 
-app.post("/login", (request, response) => {
+app.post("/login", async (request, response) => {
   const { username, password } = request.body;
 
-  const encrypted = MD5(`${username}_${password}`).toString();
+  // Connect to MongoDB Atlas using the connection string
+const client = new MongoClient(mongoURI);
+  try {
+    await client.connect();
 
-  return axios
-    .get(`${databaseURL}/users/${encrypted}.json`)
-    .then((dbResponse) => {
-      if (dbResponse.data) {
-        response.status(200).send({
-          status: 200,
-          isRegistered: true,
-        });
+    const db = client.db("Cineteca");
+    const usersCollection = db.collection("Users");
 
-        return;
-      }
+    // Check if the user exists in the MongoDB collection
+    const user = await usersCollection.findOne({ username });
 
+    if (user.password == password ) {
+      response.status(200).send({
+        status: 200,
+        isRegistered: true,
+      });
+    } else {
       response.status(404).send({
         status: 404,
         isRegistered: false,
       });
-    })
-    .catch((error) => {
-      response.send("error");
-      console.log(error);
-    });
+    }
+  } catch (error) {
+    response.status(500).send("error");
+    console.error(error);
+  } finally {
+    await client.close();
+  }
 });
 
-app.post("/register-user", (request, response) => {
+app.post("/register-user", async (request, response) => {
   const { username, password } = request.body;
 
-  const encrypted = MD5(`${username}_${password}`).toString();
+  // Connect to MongoDB Atlas using the connection string
+  const client = new MongoClient(mongoURI);
 
-  return axios
-    .put(`${databaseURL}/users/${encrypted}.json`, {
-      username,
-      password,
-    })
-    .then((dbResponse) => {
-      if (dbResponse.data) {
-        response.status(200).send({
-          status: 200,
-          isRegistered: true,
-        });
+  try {
+    await client.connect();
 
-        return;
-      }
+    const db = client.db("Cineteca");
+    const usersCollection = db.collection("Users");
 
-      response.status(404).send({
-        status: 404,
-        isRegistered: false,
+    // Check if the user already exists in the MongoDB collection
+    //const existingUser = await usersCollection.findOne({ username });
+
+    //if (existingUser) {
+      //response.status(409).send({
+        //status: 409,
+        //message: "User already exists",
+      //});
+   // } else {
+      // Insert the new user into the MongoDB collection
+      await usersCollection.insertOne({ username, password });
+
+      response.status(200).send({
+
+        status: 200,
+        message: "User registered successfully",
       });
-    })
-    .catch((error) => {
-      response.send("error");
-      console.log(error);
-    });
+    //}
+  } catch (error) {
+    response.status(500).send("error");
+    console.error(error);
+  } finally {
+    await client.close();
+  }
 });
 
-app.get("/get-all-images", (request, response) => {
-  return axios
-    .get(`${databaseURL}/images.json`)
-    .then((dbResponse) => {
-      response.send({ ...dbResponse.data });
-      console.log(dbResponse);
-    })
-    .catch((error) => {
-      response.send("error");
-      console.log(error);
-    });
+app.get("/get-all-images", async (request, response) => {
+  // Connect to MongoDB Atlas using the connection string
+  const client = new MongoClient(mongoURI);
+
+  try {
+    await client.connect();
+
+    const db = client.db("Cineteca");
+    const imagesCollection = db.collection("images");
+
+    // Retrieve all images from the MongoDB collection
+    const images = await imagesCollection.find().toArray();
+    
+
+    response.status(200).json(images);
+  } catch (error) {
+    response.status(500).send("error");
+    console.error(error);
+  } finally {
+    await client.close();
+  }
 });
 
-app.post("/upload-image", (request, response) => {
+app.get("/get-all-videos", async (request, response) => {
+  // Connect to MongoDB Atlas using the connection string
+  const client = new MongoClient(mongoURI);
+
+  try {
+    await client.connect();
+
+    const db = client.db("Cineteca");
+    const videoCollection = db.collection("videos");
+
+    // Retrieve all images from the MongoDB collection
+    const video = await videoCollection.find().toArray();
+    
+
+    response.status(200).json(video);
+  } catch (error) {
+    response.status(500).send("error");
+    console.error(error);
+  } finally {
+    await client.close();
+  }
+});
+
+
+
+app.post("/upload-image", async (request, response) => {
   const { uuid, base64Image } = request.body;
 
-  return axios
-    .put(`${databaseURL}/images/${uuid}.json`, {
-      base64Image,
-    })
-    .then(() => {
-      response.status(200).send({
-        status: 200
-      });
-    })
-    .catch((error) => {
-      response.send("error");
-      console.log(error);
+  // Connect to MongoDB Atlas using the connection string
+  const client = new MongoClient(mongoURI);
+
+  try {
+    await client.connect();
+
+    const db = client.db("Cineteca");
+    const imagesCollection = db.collection("images");
+
+    // Insert the image into the MongoDB collection
+    await imagesCollection.insertOne({ uuid, base64Image });
+
+    response.status(200).send({
+      status: 200,
+      message: "Image uploaded successfully",
     });
+  } catch (error) {
+    response.status(500).send("error");
+    console.error(error);
+  } finally {
+    await client.close();
+  }
 });
 
-exports.app = functions.https.onRequest(app);
+app.post("/upload-video", async (request, response) => {
+  const { uuid, base64Image } = request.body;
+
+  // Connect to MongoDB Atlas using the connection string
+  const client = new MongoClient(mongoURI);
+
+  try {
+    await client.connect();
+
+    const db = client.db("Cineteca");
+    const videoCollection = db.collection("videos");
+
+    // Insert the image into the MongoDB collection
+    await videoCollection.insertOne({ uuid, base64Image });
+
+    response.status(200).send({
+      status: 200,
+      message: "Image uploaded successfully",
+    });
+  } catch (error) {
+    response.status(500).send("error");
+    console.error(error);
+  } finally {
+    await client.close();
+  }
+});
+
+
+const port =  8080;
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
+
