@@ -53,6 +53,7 @@ const client = new MongoClient(mongoURI);
 
 app.post("/register-user", async (request, response) => {
   const { username, password } = request.body;
+  
 
   // Connect to MongoDB Atlas using the connection string
   const client = new MongoClient(mongoURI);
@@ -176,6 +177,8 @@ app.post("/upload-video", async (request, response) => {
     const db = client.db("Cineteca");
     const videoCollection = db.collection("videos");
 
+   
+
     // Insert the image into the MongoDB collection
     await videoCollection.insertOne({ uuid, base64Image });
 
@@ -191,6 +194,41 @@ app.post("/upload-video", async (request, response) => {
   }
 });
 
+app.put("/modificar-usuario", async (request, response) => {
+  const { user, password } = request.body;
+  console.log(user); 
+
+  // Connect to MongoDB Atlas using the connection string
+  const client = new MongoClient(mongoURI);
+  try {
+    await client.connect();
+
+    const db = client.db("Cineteca");
+    const usersCollection = db.collection("Users");
+
+    const filter = { username: user };
+
+    const updateDocument = {
+      $set: {
+        password: password, 
+      },
+   };
+
+    // Check if the user exists in the MongoDB collection
+    const result = await usersCollection.updateOne(filter, updateDocument);
+      response.status(200).send({
+        status: 200,
+        isModified: true,
+      });
+
+    
+  } catch (error) {
+    response.status(500).send("error");
+    console.error(error);
+  } finally {
+    await client.close();
+  }
+});
 
 const port =  8080;
 
