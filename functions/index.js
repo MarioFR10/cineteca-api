@@ -208,8 +208,6 @@ app.post("/delete-video", async (request, response) => {
 
 app.post("/upload-video", async (request, response) => {
   const { uuid, base64Image } = request.body;
-
-  // Connect to MongoDB Atlas using the connection string
   const client = new MongoClient(mongoURI);
 
   try {
@@ -218,7 +216,6 @@ app.post("/upload-video", async (request, response) => {
     const db = client.db("Cineteca");
     const videoCollection = db.collection("videos");
 
-    // Insert the image into the MongoDB collection
     await videoCollection.insertOne({ uuid, base64Image });
 
     response.status(200).send({
@@ -233,11 +230,40 @@ app.post("/upload-video", async (request, response) => {
   }
 });
 
-app.get("/get-all-material", async (request, response) => {
+app.put("/modificar-usuario", async (request, response) => {
+  const { user, password } = request.body;
   const client = new MongoClient(mongoURI);
   try {
     await client.connect();
 
+    const db = client.db("Cineteca");
+    const usersCollection = db.collection("Users");
+
+    const filter = { username: user };
+
+    const updateDocument = {
+      $set: {
+        password: password,
+      },
+    };
+
+    const result = await usersCollection.updateOne(filter, updateDocument);
+    response.status(200).send({
+      status: 200,
+      isModified: true,
+    });
+  } catch (error) {
+    response.status(500).send("error");
+    console.error(error);
+  } finally {
+    await client.close();
+  }
+});
+
+app.get("/get-all-material", async (request, response) => {
+  const client = new MongoClient(mongoURI);
+  try {
+    await client.connect();
     const db = client.db("Cineteca");
     const materialCollection = db.collection("material");
     const material = await materialCollection.find().toArray();
